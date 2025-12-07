@@ -1,18 +1,16 @@
-%%writefile mlops/.github/workflows/pipeline.yml
-name: Tourism Project Pipeline
+name: MLOps pipeline
 
 on:
   push:
     branches:
-      - main  # Automatically triggers on push to the main branch
+      - main # Automatically triggers on push to the main branch
 
 jobs:
-
   register-dataset:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
@@ -28,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
@@ -45,31 +43,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install Dependencies
         run: pip install -r mlops/requirements.txt
       - name: Start MLflow Server
-        run: |\
-          nohup mlflow ui --host 0.0.0.0 --port 5000 &
-          sleep 5
+        run: |
+          nohup mlflow ui --host 0.0.0.0 --port 5000 & # Run MLflow UI in the background
+          sleep 5 # Wait for a moment to let the server start
       - name: Model Building
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # The MLflow tracking URL is necessary for the python script
+          # CRITICAL: Set tracking URI for train.py to use the local MLflow server
           export MLFLOW_TRACKING_URI=http://0.0.0.0:5000
           python mlops/model_building/train.py
-
 
   deploy-hosting:
     runs-on: ubuntu-latest
     needs: [model-traning, data-prep, register-dataset]
     steps:
       - uses: actions/checkout@v3
-      - name: Install Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
