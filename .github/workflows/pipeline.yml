@@ -1,61 +1,98 @@
-```
-name: MLOps pipeline
+name: Tourism Project Pipeline
 
 on:
   push:
     branches:
       - main  # Automatically triggers on push to the main branch
+
 jobs:
+
   register-dataset:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4 # Use v4 for consistency and latest features
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
       - name: Install Dependencies
+        # Assuming requirements.txt is at mlops/requirements.txt
         run: pip install -r mlops/requirements.txt
+        
       - name: Upload Dataset to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        # Execute the Python script that registers/uploads the data
         run: python mlops/model_building/data_register.py
 
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
       - name: Install Dependencies
         run: pip install -r mlops/requirements.txt
+        
       - name: Run Data Preparation
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/model_building/prep.py
+        # Execute the Python script for data preparation/preprocessing
+        run: python mlops/model_building/data_prep.py
 
 
-  model-traning:
+  model-training: # Corrected typo: "traning" -> "training"
     needs: data-prep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
       - name: Install Dependencies
         run: pip install -r mlops/requirements.txt
-      - name: Start MLflow Server
-        run: |
-          nohup mlflow ui --host 0.0.0.0 --port 5000 &  # Run MLflow UI in the background
-          sleep 5  # Wait for a moment to let the server start
-      - name: Model Building
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/model_building/train.py
+        
+      # MLflow tracking does not require starting the server in the background 
+      # for a single run on a local machine (the runner). The run will save 
+      # artifacts locally.
 
+      - name: Run Model Building and Training
+        env:
+          # HF_TOKEN is still needed if you log the model artifact to HF
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        # Execute the Python script that runs MLflow experiments
+        run: python mlops/model_building/model_training.py 
+        # MLflow artifacts will be stored in ./mlruns
+
+      # If you need to transfer MLflow artifacts, you'd add an upload step here.
+      
   deploy-hosting:
     runs-on: ubuntu-latest
-    needs: [model-traning,data-prep,register-dataset]
+    # Simplify dependency: only need model-training to finish
+    needs: model-training 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
       - name: Install Dependencies
         run: pip install -r mlops/requirements.txt
+        
       - name: Push files to Frontend Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/hosting/hosting.py
-
-```
+        # Assuming you use a script like deploy_app.py to push the Streamlit files
+        run: python mlops/deployment/deploy_app.py
