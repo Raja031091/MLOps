@@ -4,12 +4,12 @@ from huggingface_hub import hf_hub_download
 import joblib
 import json
 import os
-
+#churn-model
 # --- Configuration ---
 # NOTE: Replace <-----Hugging Face User ID -----> with your actual ID.
 # Ensure this ID is correct!
 HF_USER_ID = "Sraja0310" 
-MODEL_REPO_ID = f"{HF_USER_ID}/churn-model"
+MODEL_REPO_ID = f"{HF_USER_ID}/Tourism_ML_project"
 MODEL_FILENAME = "best_churn_model_v1.joblib"
 LOG_FILENAME = "experiment_log.json"
 
